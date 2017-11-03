@@ -824,12 +824,12 @@ class SiteTree(object):
                     if item.parent.id in parent_ids or item.parent.alias in parent_aliases:
                         menu_items.append(item)
 
-        menu_items = self.apply_hook(menu_items, 'menu')
+        menu_items = self.apply_hook(menu_items, 'menu', **locals())
         self.update_has_children(tree_alias, menu_items, 'menu')
         return menu_items
 
     @classmethod
-    def apply_hook(cls, items, sender):
+    def apply_hook(cls, items, sender, **kwargs):
         """Applies item processing hook, registered with ``register_item_hook()``
         to items supplied, and returns processed list.
 
@@ -842,7 +842,7 @@ class SiteTree(object):
         if _ITEMS_PROCESSOR is None:
             return items
 
-        return _ITEMS_PROCESSOR(tree_items=items, tree_sender=sender)
+        return _ITEMS_PROCESSOR(tree_items=items, tree_sender=sender, **kwargs)
 
     def check_access(self, item, context):
         """Checks whether a current user has an access to a certain item.
@@ -911,7 +911,7 @@ class SiteTree(object):
             climb(current_item)
             breadcrumbs.reverse()
 
-        items = self.apply_hook(breadcrumbs, 'breadcrumbs')
+        items = self.apply_hook(breadcrumbs, 'breadcrumbs', **locals())
         self.update_has_children(tree_alias, items, 'breadcrumbs')
 
         return items
@@ -929,7 +929,7 @@ class SiteTree(object):
             return ''
 
         tree_items = self.filter_items(self.get_children(tree_alias, None), 'sitetree')
-        tree_items = self.apply_hook(tree_items, 'sitetree')
+        tree_items = self.apply_hook(tree_items, 'sitetree', **locals())
         self.update_has_children(tree_alias, tree_items, 'sitetree')
 
         return tree_items
@@ -952,7 +952,7 @@ class SiteTree(object):
 
         tree_items = self.get_children(tree_alias, parent_item)
         tree_items = self.filter_items(tree_items, navigation_type)
-        tree_items = self.apply_hook(tree_items, '%s.children' % navigation_type)
+        tree_items = self.apply_hook(tree_items, '%s.children' % navigation_type, **locals())
         self.update_has_children(tree_alias, tree_items, navigation_type)
 
         my_template = get_template(use_template)
@@ -987,7 +987,7 @@ class SiteTree(object):
         for tree_item in tree_items:
             children = self.get_children(tree_alias, tree_item)
             children = self.filter_items(children, navigation_type)
-            children = self.apply_hook(children, '%s.has_children' % navigation_type)
+            children = self.apply_hook(children, '%s.has_children' % navigation_type, **locals())
             tree_item.has_children = len(children) > 0
 
     def filter_items(self, items, navigation_type=None):
