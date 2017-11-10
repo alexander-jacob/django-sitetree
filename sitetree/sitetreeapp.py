@@ -842,6 +842,12 @@ class SiteTree(object):
         if _ITEMS_PROCESSOR is None:
             return items
 
+        # no duplicate keys, if tree_items/tree_sender are in kwargs, add a "_" prefix
+        if 'tree_items' in kwargs:
+            kwargs['_tree_items'] = kwargs.pop('tree_items')
+        if 'tree_sender' in kwargs:
+            kwargs['_tree_sender'] = kwargs.pop('tree_sender')
+
         return _ITEMS_PROCESSOR(tree_items=items, tree_sender=sender, **kwargs)
 
     def check_access(self, item, context):
