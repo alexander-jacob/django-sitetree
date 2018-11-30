@@ -1,6 +1,9 @@
 from django.conf import settings as django_settings
 from django import VERSION as django_version
-from django.core.urlresolvers import get_urlconf, get_resolver
+try:
+    from django.urls import get_urlconf, get_resolver
+except ImportError:
+    from django.core.urlresolvers import get_urlconf, get_resolver
 from django.utils.translation import ugettext_lazy as _
 from django.utils import six
 from django.http import HttpResponseRedirect
@@ -121,6 +124,20 @@ class TreeItemAdmin(admin.ModelAdmin):
 
         return super(TreeItemAdmin, self).formfield_for_manytomany(db_field, request=request, **kwargs)
 
+    def _redirect(self, request, response):
+        """Generic redirect for item editor."""
+
+        if '_addanother' in request.POST:
+            return HttpResponseRedirect('../item_add/')
+
+        elif '_save' in request.POST:
+            return HttpResponseRedirect('../')
+
+        elif '_continue' in request.POST:
+            return response
+
+        return HttpResponseRedirect('')
+
     def response_add(self, request, obj, post_url_continue=None, **kwargs):
         """Redirects to the appropriate items' 'continue' page on item add.
 
@@ -130,7 +147,8 @@ class TreeItemAdmin(admin.ModelAdmin):
         """
         if post_url_continue is None:
             post_url_continue = '../item_%s/' % obj.pk
-        return super(TreeItemAdmin, self).response_add(request, obj, post_url_continue)
+
+        return self._redirect(request, super(TreeItemAdmin, self).response_add(request, obj, post_url_continue))
 
     def response_change(self, request, obj, **kwargs):
         """Redirects to the appropriate items' 'add' page on item change.
@@ -139,15 +157,7 @@ class TreeItemAdmin(admin.ModelAdmin):
         should make some changes to redirection process.
 
         """
-        response = super(TreeItemAdmin, self).response_change(request, obj)
-        if '_addanother' in request.POST:
-            return HttpResponseRedirect('../item_add/')
-        elif '_save' in request.POST:
-            return HttpResponseRedirect('../')
-        elif '_continue' in request.POST:
-            return response
-        else:
-            return HttpResponseRedirect('')
+        return self._redirect(request, super(TreeItemAdmin, self).response_change(request, obj))
 
     def get_form(self, request, obj=None, **kwargs):
         """Returns modified form for TreeItem model.
@@ -164,6 +174,7 @@ class TreeItemAdmin(admin.ModelAdmin):
         form = super(TreeItemAdmin, self).get_form(request, obj, **kwargs)
         my_choice_field.label = form.base_fields['parent'].label
         my_choice_field.help_text = form.base_fields['parent'].help_text
+        my_choice_field.widget = form.base_fields['parent'].widget
         # Replace 'parent' TreeItem field with new appropriate one
         form.base_fields['parent'] = my_choice_field
 

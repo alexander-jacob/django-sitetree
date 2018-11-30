@@ -1,16 +1,9 @@
-from django.db import models
-from django.conf import settings
 from django.contrib.auth.models import Permission
-from django.utils.translation import ugettext_lazy as _
+from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
+from django.utils.translation import ugettext_lazy as _
 
 from .settings import MODEL_TREE, TREE_ITEMS_ALIASES
-
-
-# This allows South to handle our custom 'CharFieldNullable' field.
-if 'south' in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-    add_introspection_rules([], ['^sitetree\.models\.CharFieldNullable'])
 
 
 class CharFieldNullable(models.CharField):
@@ -19,6 +12,7 @@ class CharFieldNullable(models.CharField):
     we don't have two site tree items with the same alias in the same site tree.
 
     """
+
     def get_prep_value(self, value):
         if value is not None:
             if value.strip() == '':
@@ -28,7 +22,6 @@ class CharFieldNullable(models.CharField):
 
 @python_2_unicode_compatible
 class TreeBase(models.Model):
-
     title = models.CharField(
         _('Title'), max_length=100, help_text=_('Site tree title for presentational purposes.'), blank=True)
     alias = models.CharField(
@@ -50,7 +43,6 @@ class TreeBase(models.Model):
 
 @python_2_unicode_compatible
 class TreeItemBase(models.Model):
-
     PERM_TYPE_ANY = 1
     PERM_TYPE_ALL = 2
 
@@ -74,7 +66,7 @@ class TreeItemBase(models.Model):
                     '<b>Note:</b> Refer to Django "URL dispatcher" documentation (e.g. "Naming URL patterns" part).'),
         db_index=True, default=False)
     tree = models.ForeignKey(
-        MODEL_TREE, related_name='%(class)s_tree', verbose_name=_('Site Tree'),
+        MODEL_TREE, related_name='%(class)s_tree', on_delete=models.CASCADE, verbose_name=_('Site Tree'),
         help_text=_('Site tree this item belongs to.'), db_index=True)
     hidden = models.BooleanField(
         _('Hidden'), help_text=_('Whether to show this item in navigation.'), db_index=True, default=False)
@@ -118,7 +110,7 @@ class TreeItemBase(models.Model):
     # These two are for 'adjacency list' model.
     # This is the current approach of tree representation for sitetree.
     parent = models.ForeignKey(
-        'self', related_name='%(class)s_parent', verbose_name=_('Parent'),
+        'self', related_name='%(class)s_parent', on_delete=models.CASCADE, verbose_name=_('Parent'),
         help_text=_('Parent site tree item.'), db_index=True, null=True, blank=True)
     sort_order = models.IntegerField(
         _('Sort order'),
@@ -132,12 +124,12 @@ class TreeItemBase(models.Model):
         # the sitetree (and possibly the entire site).
         if self.parent == self:
             self.parent = None
-        
+
         # Set item's sort order to its primary key.
         id_ = self.id
         if id_ and self.sort_order == 0:
             self.sort_order = id_
-        
+
         super(TreeItemBase, self).save(force_insert, force_update, **kwargs)
 
         # Set item's sort order to its primary key if not already set.
